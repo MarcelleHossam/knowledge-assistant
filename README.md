@@ -1,11 +1,5 @@
 # Universal Knowledge Assistant
 
-Your frontend (`templates/index.html`) alone couldn't work because it calls
-a backend that didn't exist (`/api/status`, `/api/ingest/wikipedia`,
-`/api/upload`, `/api/sources/:id`, `/api/chat_stream`). This project adds
-that backend — a small Flask app + a pure-Python RAG engine (chunking,
-BM25 search, Wikipedia/file ingestion, streaming LLM answers) — so the page
-actually works.
 
 ## 1. Project structure
 
@@ -78,50 +72,5 @@ If you leave all of them blank, the app still runs end-to-end — it just
 answers with the top retrieved passage instead of a generated answer, so
 you can confirm everything is wired up before paying for an API key.
 
-## 5. Try it
 
-1. In the sidebar, type a topic (e.g. `Quantum mechanics`) and click **Load** — or drag a `.pdf` / `.txt` / `.md` file onto the dropzone.
-2. Ask a question in the chat box at the bottom.
-3. You'll see retrieval → generating stages, a streamed answer with `[1]` citations, and an expandable "Retrieved context" panel underneath.
 
-## 6. What to upload to GitHub
-
-Upload **everything except** what's in `.gitignore` (git will handle this
-automatically once you push — you don't need to manually exclude files).
-Concretely, this means you commit:
-
-```
-app.py
-rag_engine.py
-requirements.txt
-.env.example
-.gitignore
-README.md
-templates/index.html
-data/.gitkeep
-```
-
-**Never commit your real `.env` file** — it holds your API key. Only
-`.env.example` (with blank values) should go to GitHub.
-
-### Pushing to GitHub
-
-```bash
-cd knowledge-assistant
-git init
-git add .
-git commit -m "Universal Knowledge Assistant: Flask + RAG backend"
-git branch -M main
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-git push -u origin main
-```
-
-Anyone who clones the repo then does exactly step 2 + 3 above to run it.
-
-## Notes on the implementation
-
-- **Retrieval**: BM25 (a proven, dependency-free keyword-ranking algorithm) over overlapping ~900-character chunks. No embeddings/vector DB needed, so there's nothing extra to install or pay for. `semantic_available` in the status panel is `false` for this reason — you can swap in an embeddings-based retriever later without changing the frontend contract.
-- **Wikipedia ingestion**: uses Wikipedia's public `action=query&prop=extracts` API — no key required.
-- **File ingestion**: `.txt` / `.md` read directly; `.pdf` parsed with `pypdf`.
-- **Chat endpoint**: `/api/chat_stream` streams Server-Sent Events (`stage`, `retrieval`, `answer`, `done`, `error`) exactly matching what your frontend's `sendQuestion()` already expects.
-- **State**: in-memory only (matches the original frontend's comment about this) — restarting `app.py` clears loaded sources. Good enough for local/demo use; swap in a real DB if you need persistence across restarts.
